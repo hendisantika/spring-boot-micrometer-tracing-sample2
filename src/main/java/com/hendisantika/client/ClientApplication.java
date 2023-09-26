@@ -17,7 +17,6 @@ import reactor.core.publisher.Hooks;
 
 @SpringBootApplication
 public class ClientApplication {
-Hooks.enableAutomaticContextPropagation();
 	public static void main(String[] args) {
 		SpringApplication.run(ClientApplication.class, args);
 	}
