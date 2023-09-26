@@ -5,7 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 
 @SpringBootApplication
@@ -26,4 +28,12 @@ Hooks.enableAutomaticContextPropagation();
 				.build()
 				.createClient(CustomerHttpClient.class);
 	}
+}
+
+interface CustomerHttpClient {
+	@GetExchange("/customers")
+	Flux<Customer> fetchCustomers();
+}
+
+record Customer(int id, String name) {
 }
