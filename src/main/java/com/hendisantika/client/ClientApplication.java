@@ -25,7 +25,7 @@ public class ClientApplication {
 	CustomerHttpClient customerHttpClient(WebClient.Builder builder) {
 		return HttpServiceProxyFactory
 				.builder()
-				.clientAdapter(WebClientAdapter.forClient(builder
+				.exchangeAdapter(WebClientAdapter.create(builder
 						.baseUrl("http://localhost:9090")
 						.build()
 				))
