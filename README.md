@@ -42,7 +42,10 @@ curl :8080/all ──► CustomerController ──► CustomerHttpClient (WebCli
 ./gradlew clean build
 ```
 
-The build uses a Gradle Java toolchain pinned to Java 25.
+The build uses a Gradle Java toolchain pinned to Java 25. The
+[configuration cache](https://docs.gradle.org/current/userguide/configuration_cache.html) is turned on in
+`gradle.properties` (`org.gradle.configuration-cache=true`), so a repeat build skips the configuration phase
+("Reusing configuration cache.").
 
 ## Run
 
@@ -131,6 +134,48 @@ logging:
 
 GitHub Actions (`.github/workflows/gradle.yml`) builds and tests the project on JDK 25 (Temurin)
 for every push and pull request to `main`, and submits the dependency graph for Dependabot alerts.
+
+### Gradle caching in CI
+
+[`gradle/actions/setup-gradle`](https://github.com/gradle/actions/blob/main/docs/setup-gradle.md) caches
+Gradle User Home (dependencies, wrapper, transforms) between runs. It can also save the
+**configuration cache**. The configuration cache can contain secrets, so the action only saves it when an
+encryption key is provided:
+
+```yaml
+- name: Setup Gradle
+  uses: gradle/actions/setup-gradle@v6
+  with:
+    cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+```
+
+The `dependency-submission` step gets the same input.
+
+To set it up in a fork or a new repository, create the secret once:
+
+```bash
+openssl rand -base64 16 | gh secret set GRADLE_ENCRYPTION_KEY
+```
+
+Notes:
+
+- Without the secret, the build still passes. The action logs
+  "Not saving configuration-cache state, as no encryption key was provided" and Gradle computes the
+  configuration from scratch on every run.
+- Dependabot PRs can't read repository secrets, so their CI runs skip the configuration cache.
+- Cache entries are keyed by commit. Re-running a workflow for the same commit restores the entry saved by
+  that commit's first run and doesn't save a new one, so use a new commit to test caching changes.
+- `setup-gradle` v6 uses Gradle's proprietary "Enhanced Caching" provider by default (free for public
+  repositories; see [DISTRIBUTION.md](https://github.com/gradle/actions/blob/main/DISTRIBUTION.md)).
+  You can opt out with `cache-provider: basic`, but `cache-encryption-key` is documented as an
+  Enhanced-only option, so CI would likely stop saving the configuration cache.
+
+### Dependabot
+
+`.github/dependabot.yml` checks for updates daily (21:00 Asia/Jakarta) for both ecosystems:
+
+- `gradle`: Spring Boot, libraries, plugins and the Gradle wrapper
+- `github-actions`: the actions used in the workflows
 
 ## Author
 
