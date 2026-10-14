@@ -149,9 +149,7 @@ within a run, and it is reused between builds on your machine.
 - Its replacement, experimental "project-entry caching" (v6.3.0+), needs a Develocity access token and is
   a restricted trial, so this project doesn't use it.
 
-The workflow still passes `cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}` to both Gradle steps.
-On v6 the key is only exported as the `GRADLE_ENCRYPTION_KEY` environment variable and has no effect on
-caching. Missing the secret (for example in a fork or in Dependabot PRs) does no harm.
+The workflow doesn't set `cache-encryption-key`, because on v6 the key no longer affects caching.
 
 `setup-gradle` v6 uses Gradle's proprietary "Enhanced Caching" provider by default. It is free for public
 repositories; see [DISTRIBUTION.md](https://github.com/gradle/actions/blob/main/DISTRIBUTION.md). To use the
