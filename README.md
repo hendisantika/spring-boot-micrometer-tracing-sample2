@@ -138,37 +138,27 @@ for every push and pull request to `main`, and submits the dependency graph for 
 ### Gradle caching in CI
 
 [`gradle/actions/setup-gradle`](https://github.com/gradle/actions/blob/main/docs/setup-gradle.md) caches
-Gradle User Home (dependencies, wrapper, transforms) between runs. It can also save the
-**configuration cache**. The configuration cache can contain secrets, so the action only saves it when an
-encryption key is provided:
+Gradle User Home (dependencies, wrapper, transforms) between runs.
 
-```yaml
-- name: Setup Gradle
-  uses: gradle/actions/setup-gradle@v6
-  with:
-    cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-```
+The **configuration cache is not kept between CI runs**. Each CI build computes the configuration from scratch
+("Calculating task graph as no cached configuration is available"). Gradle still uses the configuration cache
+within a run, and it is reused between builds on your machine.
 
-The `dependency-submission` step gets the same input.
+- `setup-gradle` v5 could save the configuration cache, encrypted with a `cache-encryption-key`.
+  [v6.0.0 removed that support](https://github.com/gradle/actions/pull/884).
+- Its replacement, experimental "project-entry caching" (v6.3.0+), needs a Develocity access token and is
+  a restricted trial, so this project doesn't use it.
 
-To set it up in a fork or a new repository, create the secret once:
+The workflow still passes `cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}` to both Gradle steps.
+On v6 the key is only exported as the `GRADLE_ENCRYPTION_KEY` environment variable and has no effect on
+caching. Missing the secret (for example in a fork or in Dependabot PRs) does no harm.
 
-```bash
-openssl rand -base64 16 | gh secret set GRADLE_ENCRYPTION_KEY
-```
+`setup-gradle` v6 uses Gradle's proprietary "Enhanced Caching" provider by default. It is free for public
+repositories; see [DISTRIBUTION.md](https://github.com/gradle/actions/blob/main/DISTRIBUTION.md). To use the
+open-source provider instead, set `cache-provider: basic`.
 
-Notes:
-
-- Without the secret, the build still passes. The action logs
-  "Not saving configuration-cache state, as no encryption key was provided" and Gradle computes the
-  configuration from scratch on every run.
-- Dependabot PRs can't read repository secrets, so their CI runs skip the configuration cache.
-- Cache entries are keyed by commit. Re-running a workflow for the same commit restores the entry saved by
-  that commit's first run and doesn't save a new one, so use a new commit to test caching changes.
-- `setup-gradle` v6 uses Gradle's proprietary "Enhanced Caching" provider by default (free for public
-  repositories; see [DISTRIBUTION.md](https://github.com/gradle/actions/blob/main/DISTRIBUTION.md)).
-  You can opt out with `cache-provider: basic`, but `cache-encryption-key` is documented as an
-  Enhanced-only option, so CI would likely stop saving the configuration cache.
+Cache entries are keyed by commit. Re-running a workflow for the same commit restores that commit's entry
+and doesn't save a new one, so use a new commit to test caching changes.
 
 ### Dependabot
 
